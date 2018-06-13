@@ -13,15 +13,10 @@ import argparse
 import logging
 import theano
 from theano import tensor as T
+import utils
 
 logger = logging.getLogger(__name__)
 theano.config.exception_verbosity='high'
-
-
-def load_adjacency_matrix(file, variable_name="network"):
-    data = scipy.io.loadmat(file)
-    logger.info("loading mat file %s", file)
-    return data[variable_name]
 
 def deepwalk_filter(evals, window):
     for i in range(len(evals)):
@@ -68,7 +63,7 @@ def netmf_large(args):
     logger.info("Running NetMF for a large window size...")
     logger.info("Window size is set to be %d", args.window)
     # load adjacency matrix
-    A = load_adjacency_matrix(args.input,
+    A = utils.load_adjacency_matrix(args.input,
             variable_name=args.matfile_variable_name)
     vol = float(A.sum())
     # perform eigen-decomposition of D^{-1/2} A D^{-1/2}
@@ -111,7 +106,7 @@ def netmf_small(args):
     logger.info("Running NetMF for a small window size...")
     logger.info("Window size is set to be %d", args.window)
     # load adjacency matrix
-    A = load_adjacency_matrix(args.input,
+    A = utils.load_adjacency_matrix(args.input,
             variable_name=args.matfile_variable_name)
     # directly compute deepwalk matrix
     deepwalk_matrix = direct_compute_deepwalk_matrix(A,
