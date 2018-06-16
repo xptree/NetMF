@@ -86,15 +86,10 @@ def dispatch_jobs(G, num_job, subsample, args):
         cnt += res.get()
     return cnt
 
-def netmf_sparse(args):
+def netmf_sparse_sampling(args):
     A = utils.load_adjacency_matrix(args.input,
             variable_name=args.matfile_variable_name)
     A.eliminate_zeros()
-    vol = float(A.sum())
-    _, d = sp.csgraph.laplacian(A, normed=False, return_diag=True)
-    print(np.sum(d==0))
-    d[d==0.] = 1.
-    print(d.min(), d.max())
     A = A.astype(int)
     A = sp.tril(A).todok()
 
@@ -119,24 +114,36 @@ def netmf_sparse(args):
     cnt = dispatch_jobs(graph, args.job, sample//args.job, args)
     with open("path.pkl", "wb") as f:
         pkl.dump(cnt, f)
-    return
+    return cnt
 
-    sparsifier = sp.dok_matrix((n, n), dtype=np.float64)
-    for i in range(sample):
-        if (i+1) % 100000 == 0:
-            logger.info("%d paths sampled", i+1)
-        length = np.random.randint(args.window) + 1
-        u, v, weight = path_sampling(graph, length)
-        u, v = max(u, v), min(u, v)
-        weight = weight * m / sample
-        sparsifier[u, v] += weight
 
+def netmf_sparse_factorization(args, cnt):
+    A = utils.load_adjacency_matrix(args.input,
+            variable_name=args.matfile_variable_name)
+    A.eliminate_zeros()
+    vol = float(A.sum())
+    _, d_root = sp.csgraph.laplacian(A, normed=True, return_diag=True)
+    D_inv = sp.diags(d_root ** -2)
+    A = A.astype(int)
+    A = sp.tril(A).todok()
+
+    n, m = A.shape[0], A.nnz
+
+    sample = sum(cnt.values())
+    logger.info("total number of samples = %d", sample)
+    items = list()
+    for k, v in cnt.items():
+        weight = float(v) * m / sample
+        items.append((k[0], k[1], weight))
+        if k[0] != k[1]:
+            items.append((k[1], k[0], weight))
+    rows, cols, data = zip(*items)
+
+    sparsifier = sp.coo_matrix((data, (rows, cols)), shape=(n,n), dtype=np.float64)
     logger.info("initial sparsifier done, with %d nnz, and vol=%.2f", sparsifier.nnz, sparsifier.sum())
-    sparsifier = sparsifier + sp.tril(sparsifier, -1).T
-    L = sp.csgraph.laplacian(sparsifier, normed=False)
+    L_sp, d_sp = sp.csgraph.laplacian(sparsifier, normed=False, return_diag=True)
+    M = sp.diags(d_sp) - L_sp
 
-    M = sp.diags(d) - L
-    D_inv = sp.diags(d ** -1)
     M = D_inv.dot(D_inv.dot(M).T)
     print(M.min(), M.max())
     M = M.maximum(0)
@@ -146,14 +153,21 @@ def netmf_sparse(args):
     M = M.log1p()
     print(M.min(), M.max())
 
-    u, s, v = sp.linalg.svds(M, args.dim, return_singular_vectors="u")
+    deepwalk_embedding = utils.svd_deepwalk_matrix(M, dim=args.dim)
+
+    logger.info("Save embedding to %s", args.output)
+    np.save(args.output, deepwalk_embedding, allow_pickle=False)
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=str, default='../network_embebedding_mf/data/blog/blogcatalog.mat',
+    parser.add_argument("--input", type=str, default='blogcatalog.mat',
             help=".mat input file path")
+    parser.add_argument("--path", type=str, default='path.pkl',
+            help="sampled paths (.pkl)")
+    parser.add_argument("--output", type=str, required=True,
+            help="embedding output file path")
     parser.add_argument('--matfile-variable-name', default='network',
             help='variable name of adjacency matrix inside a .mat file.')
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
@@ -181,4 +195,13 @@ if __name__ == "__main__":
             format='%(asctime)s %(message)s') # include timestamp
 
     np.random.seed(args.seed)
-    netmf_sparse(args)
+    if len(args.path) > 0:
+        logger.info("path samples exists at %s, loading...", args.path)
+        with open(args.path, "rb") as f:
+            cnt = pkl.load(f)
+        logger.info("loaded!")
+    else:
+        cnt = netmf_sparse_sampling(args)
+
+    np.random.seed(args.seed)
+    netmf_sparse_factorization(args, cnt)
