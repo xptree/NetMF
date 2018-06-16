@@ -5,7 +5,6 @@
 # Create Time: 2017/07/13 16:05
 # TODO:
 
-import scipy.io
 import scipy.sparse as sparse
 from scipy.sparse import csgraph
 import numpy as np
@@ -53,12 +52,6 @@ def approximate_deepwalk_matrix(evals, D_rt_invU, window, vol, b):
             np.count_nonzero(Y))
     return sparse.csr_matrix(Y)
 
-def svd_deepwalk_matrix(X, dim):
-    u, s, v = sparse.linalg.svds(X, dim, return_singular_vectors="u")
-    # return U \Sigma^{1/2}
-    return sparse.diags(np.sqrt(s)).dot(u.T).T
-
-
 def netmf_large(args):
     logger.info("Running NetMF for a large window size...")
     logger.info("Window size is set to be %d", args.window)
@@ -76,7 +69,7 @@ def netmf_large(args):
             vol=vol, b=args.negative)
 
     # factorize deepwalk matrix with SVD
-    deepwalk_embedding = svd_deepwalk_matrix(deepwalk_matrix, dim=args.dim)
+    deepwalk_embedding = utils.svd_deepwalk_matrix(deepwalk_matrix, dim=args.dim)
 
     logger.info("Save embedding to %s", args.output)
     np.save(args.output, deepwalk_embedding, allow_pickle=False)
@@ -113,7 +106,7 @@ def netmf_small(args):
             window=args.window, b=args.negative)
 
     # factorize deepwalk matrix with SVD
-    deepwalk_embedding = svd_deepwalk_matrix(deepwalk_matrix, dim=args.dim)
+    deepwalk_embedding = utils.svd_deepwalk_matrix(deepwalk_matrix, dim=args.dim)
     logger.info("Save embedding to %s", args.output)
     np.save(args.output, deepwalk_embedding, allow_pickle=False)
 
