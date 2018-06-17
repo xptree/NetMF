@@ -55,7 +55,7 @@ def load_label(file, variable_name="group"):
     logger.info("loading mat file %s", file)
     label = data[variable_name].todense().astype(np.int)
     label = np.array(label)
-    print(label.shape, type(label), label.min(), label.max())
+    #print(label.shape, type(label), label.min(), label.max())
     return label
 
 def predict_cv(X, y, train_ratio=0.2, n_splits=10, random_state=0, C=1.):
@@ -63,7 +63,7 @@ def predict_cv(X, y, train_ratio=0.2, n_splits=10, random_state=0, C=1.):
     shuffle = ShuffleSplit(n_splits=n_splits, test_size=1-train_ratio,
             random_state=random_state)
     for train_index, test_index in shuffle.split(X):
-        print(train_index.shape, test_index.shape)
+        #print(train_index.shape, test_index.shape)
         assert len(set(train_index) & set(test_index)) == 0
         assert len(train_index) + len(test_index) == X.shape[0]
         X_train, X_test = X[train_index], X[test_index]
@@ -79,13 +79,14 @@ def predict_cv(X, y, train_ratio=0.2, n_splits=10, random_state=0, C=1.):
         y_pred = construct_indicator(y_score, y_test)
         mi = f1_score(y_test, y_pred, average="micro")
         ma = f1_score(y_test, y_pred, average="macro")
-        logger.info("micro f1 %f macro f1 %f", mi, ma)
+        #logger.info("micro f1 %f macro f1 %f", mi, ma)
         micro.append(mi)
         macro.append(ma)
     logger.info("%d fold validation, training ratio %f", len(micro), train_ratio)
     logger.info("Average micro %.2f, Average macro %.2f",
             np.mean(micro) * 100,
             np.mean(macro) * 100)
+    return np.mean(micro)*100, np.mean(macro)*100
 
 
 if __name__ == "__main__":
@@ -132,7 +133,12 @@ if __name__ == "__main__":
     train_ratios = np.linspace(args.start_train_ratio, args.stop_train_ratio,
             args.num_train_ratio)
 
-    for tr in train_ratios:
-        predict_cv(embedding, label, train_ratio=tr/100.,
-                n_splits=args.num_split, C=args.C, random_state=args.seed)
 
+    f1 = list()
+    for tr in train_ratios:
+        res = predict_cv(embedding, label, train_ratio=tr/100.,
+                n_splits=args.num_split, C=args.C, random_state=args.seed)
+        f1.append(res)
+    micro, macro = zip(*f1)
+    print(" ".join([str(x) for x in micro]))
+    print(" ".join([str(x) for x in macro]))
