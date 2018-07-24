@@ -1,5 +1,7 @@
 # NetMF
 
+[Network Embedding as Matrix Factorization: Unifying DeepWalk, LINE, PTE, and node2vec](https://arxiv.org/abs/1710.02971)
+
 ## Data Sets
 
 
