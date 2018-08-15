@@ -21,7 +21,7 @@ Please cite our paper if you use this code in your own work:
 
 ```
 @inproceedings{qiu2018network,
-  title={Network embedding as matrix factorization: Unifying deepwalk, line, pte, and node2vec},
+  title={Network Embedding as Matrix Factorization: Unifying DeepWalk, LINE, PTE, and node2vec},
   author={Qiu, Jiezhong and Dong, Yuxiao and Ma, Hao and Li, Jian and Wang, Kuansan and Tang, Jie},
   booktitle={Proceedings of the Eleventh ACM International Conference on Web Search and Data Mining},
   pages={459--467},
