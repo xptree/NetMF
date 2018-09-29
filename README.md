@@ -7,7 +7,7 @@ This is a Python implementation of NetMF for the task of network embedding learn
 ## Data Sets
 
 
-[BlogCatalog](http://socialcomputing.asu.edu/datasets/BlogCatalog3)
+BlogCatalog [Source](http://socialcomputing.asu.edu/datasets/BlogCatalog3) [Preprocessed](http://leitang.net/code/social-dimension/data/blogcatalog.mat)
 
 Protein-Protein Interaction [Source](http://thebiogrid.org/download.php) [Preprocessed](http://snap.stanford.edu/node2vec/Homo_sapiens.mat)
 
